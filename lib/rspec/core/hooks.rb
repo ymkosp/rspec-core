@@ -488,6 +488,11 @@ EOS
           process(host, globals, :after,  :context)
         end
 
+        def register_global_singleton_context_hooks(example, globals)
+          process_singleton_context_hooks(example, globals, :before)
+          process_singleton_context_hooks(example, globals, :after)
+        end
+
         def around_example_hooks_for(example, initial_procsy=nil)
           AroundHookCollection.new(FlatMap.flat_map(hook_owners) do |a|
             a.hooks[:around][:example]
@@ -528,6 +533,14 @@ EOS
             next unless scope == :example || hook.options_apply?(host)
             next if host.parent_groups.any? { |a| a.hooks[position][scope].include?(hook) }
             self[position][scope] << hook
+          end
+        end
+
+        def process_singleton_context_hooks(example, globals, position)
+          globals[position][:context].each do |hook|
+            next unless hook.options_apply?(example)
+            next if example.example_group.parent_groups.any? { |a| hook.options_apply?(a) }
+            self[position][:context] << hook
           end
         end
 
