@@ -86,5 +86,34 @@ module RSpec
         end
       end
     end
+
+    class FilterableItemRepository
+      def initialize(predicate)
+        @applicable_metadata_keys = Set.new
+        @items = []
+        @memoized_lookups = Hash.new do |hash, applicable_metadata|
+          hash[applicable_metadata] = @items.select do |(_, item_meta)|
+            item_meta.empty? || MetadataFilter.apply?(predicate, item_meta, applicable_metadata)
+          end.map { |item, _| item }
+        end
+      end
+
+      def add(item, metadata)
+        @items << [item, metadata]
+        @applicable_metadata_keys.merge(metadata.keys)
+        @memoized_lookups.clear
+      end
+
+      def items_for(metadata)
+        @memoized_lookups[applicable_metadata_from metadata]
+      end
+
+    private
+
+      def applicable_metadata_from(metadata)
+        # TODO: ensure this differentiates between `key: nil` and key missing
+        Hash[ @applicable_metadata_keys.to_a.zip(metadata.values_at(*@applicable_metadata_keys)) ]
+      end
+    end
   end
 end

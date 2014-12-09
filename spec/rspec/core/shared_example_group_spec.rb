@@ -106,9 +106,8 @@ module RSpec
             it "delegates include on configuration" do
               implementation = Proc.new { def bar; 'bar'; end }
               define_shared_group(:foo => :bar, &implementation)
-              a = RSpec.configuration.include_modules.first
-              expect(Class.new.send(:include, a[0]).new.bar).to eq('bar')
-              expect(a[1]).to eq(:foo => :bar)
+              a = RSpec.configuration.include_modules.items_for(:foo => :bar).first
+              expect(Class.new.send(:include, a).new.bar).to eq('bar')
             end
           end
 
@@ -122,9 +121,8 @@ module RSpec
             it "delegates include on configuration" do
               implementation = Proc.new { def bar; 'bar'; end }
               define_shared_group("name", :foo => :bar, &implementation)
-              a = RSpec.configuration.include_modules.first
-              expect(Class.new.send(:include, a[0]).new.bar).to eq('bar')
-              expect(a[1]).to eq(:foo => :bar)
+              a = RSpec.configuration.include_modules.items_for(:foo => :bar).first
+              expect(Class.new.send(:include, a).new.bar).to eq('bar')
             end
 
             describe "hooks for individual examples that have matching metadata" do

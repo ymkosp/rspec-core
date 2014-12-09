@@ -301,8 +301,8 @@ module RSpec
         @start_time = $_rspec_core_load_started_at || ::RSpec::Core::Time.now
         # rubocop:enable Style/GlobalVars
         @expectation_frameworks = []
-        @include_modules = []
-        @extend_modules = []
+        @include_modules = FilterableItemRepository.new(:any?)
+        @extend_modules = FilterableItemRepository.new(:any?)
         @mock_framework = nil
         @files_or_directories_to_run = []
         @color = false
@@ -331,7 +331,7 @@ module RSpec
         @profile_examples = false
         @requires = []
         @libs = []
-        @derived_metadata_blocks = []
+        @derived_metadata_blocks = FilterableItemRepository.new(:any?)
       end
 
       # @private
@@ -1050,7 +1050,7 @@ module RSpec
       # @see #extend
       def include(mod, *filters)
         meta = Metadata.build_hash_from(filters, :warn_about_example_group_filtering)
-        include_modules << [mod, meta]
+        include_modules.add(mod, meta)
       end
 
       # Tells RSpec to extend example groups with `mod`. Methods defined in
@@ -1084,7 +1084,7 @@ module RSpec
       # @see #include
       def extend(mod, *filters)
         meta = Metadata.build_hash_from(filters, :warn_about_example_group_filtering)
-        extend_modules << [mod, meta]
+        extend_modules.add(mod, meta)
       end
 
       # @private
@@ -1344,13 +1344,13 @@ module RSpec
       #   end
       def define_derived_metadata(*filters, &block)
         meta = Metadata.build_hash_from(filters, :warn_about_example_group_filtering)
-        @derived_metadata_blocks << [meta, block]
+        @derived_metadata_blocks.add(block, meta)
       end
 
       # @private
       def apply_derived_metadata_to(metadata)
-        @derived_metadata_blocks.each do |filter, block|
-          block.call(metadata) if filter.empty? || MetadataFilter.apply?(:any?, filter, metadata)
+        @derived_metadata_blocks.items_for(metadata).each do |block|
+          block.call(metadata)
         end
       end
 
@@ -1470,9 +1470,9 @@ module RSpec
         @files_to_run = nil
       end
 
-      def each_applicable_module(modules, filterable)
-        modules.each do |mod, filters|
-          yield mod if filters.empty? || filterable.apply?(:any?, filters)
+      def each_applicable_module(module_repository, filterable)
+        module_repository.items_for(filterable.metadata).each do |mod|
+          yield mod
         end
       end
 
